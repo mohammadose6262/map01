@@ -1,78 +1,22 @@
-<!DOCTYPE html>
-<html lang="ar" dir="rtl">
-<head>
-  <meta charset="UTF-8">
-  <title>ArcGIS Dashboards</title>
-  <style>
-    body {
-      margin: 0;
-      font-family: Tahoma, sans-serif;
-    }
-    .sidebar {
-      position: fixed;
-      width: 220px;
-      height: 100%;
-      background-color: teal;
-      padding: 20px 10px;
-      box-sizing: border-box;
-    }
-    .sidebar h2 {
-      color: white;
-      text-align: center;
-      margin-bottom: 20px;
-    }
-    .sidebar button {
-      width: 100%;
-      margin-bottom: 10px;
-      padding: 10px;
-      background-color: #009999;
-      border: none;
-      color: white;
-      font-weight: bold;
-      cursor: pointer;
-      border-radius: 5px;
-    }
-    .sidebar button:hover {
-      background-color: #007777;
-    }
-    .main {
-      margin-right: 230px;
-      padding: 20px;
-    }
-    iframe {
-      width: 100%;
-      height: 80vh;
-      border: none;
-    }
-  </style>
-</head>
-<body>
+import pandas as pd
 
-  <div class="sidebar">
-    <h2>الشركات</h2>
-    <button onclick="loadMap('https://www.arcgis.com/apps/dashboards/e57b7dc27c7d4d5b872af63ef196b04e')">مشارق المتميزة</button>
-    <button onclick="loadMap('https://www.arcgis.com/apps/dashboards/84d88037c4e0493a8b28fdd418c7c4dc')">مناسك المشاعر</button>
-    <button onclick="loadMap('https://www.arcgis.com/apps/dashboards/82fa12db9f5147d7b330217b13bc5ac8')">ضيوف البيت</button>
-    <button onclick="loadMap('https://www.arcgis.com/apps/dashboards/c6af4ec8f4c14577a9fcbd5cb013d309')">اكرام الضيف</button>
-    <button onclick="loadMap('https://www.arcgis.com/apps/dashboards/59c616358d004c11a08f8e29bbacbaad')">الرفادة</button>
-    <button onclick="loadMap('https://www.arcgis.com/apps/dashboards/585b3d5db7fc4263bde2cfebf0c8d493')">رفاد</button>
-    <button onclick="loadMap('https://www.arcgis.com/apps/dashboards/b693b6e2d3d84fd5ab35493a21b61f11')">رحلات ومنافع</button>
-    <button onclick="loadMap('https://www.arcgis.com/apps/dashboards/dd738d79eac34378aa35c51ad84526a5')">إثراء الجود</button>
-    <button onclick="loadMap('https://www.arcgis.com/apps/dashboards/3d7d6cdf1a0047e29dc21a7b88db89de')">إثراء الخير</button>
-    <button onclick="loadMap('https://www.arcgis.com/apps/dashboards/98c92b98170c4b8b87b3b62f69a7f716')">مكة للإنشاء والتعمير</button>
-    <!-- اضف الباقي إذا تبغى -->
-  </div>
+# روابط الشركات التي أرسلها المستخدم سابقًا يدويًا
+data = {
+    "الشركة": [
+        "داشبورد التخصيص العام",
+        "مشارق المتميزة",
+        "مناسك المشاعر",
+        "ضيوف البيت",
+        "اكرام الضيف"
+    ],
+    "الرابط": [
+        "https://www.arcgis.com/apps/dashboards/a0bf1c9da92146cd91240cd81335d50e",
+        "https://www.arcgis.com/apps/dashboards/e57b7dc0f58d4a85b392cf5773cb5836",
+        "https://www.arcgis.com/apps/dashboards/84d880377f1c4168a6330c0c1be53971",
+        "https://www.arcgis.com/apps/dashboards/82fa12d387a242638b732707288fea41",
+        "https://www.arcgis.com/apps/dashboards/c6af4ec985e841e299375fefb424d233"
+    ]
+}
 
-  <div class="main">
-    <h2>ArcGIS Dashboards</h2>
-    <iframe id="mapFrame" src=""></iframe>
-  </div>
-
-  <script>
-    function loadMap(url) {
-      document.getElementById("mapFrame").src = url;
-    }
-  </script>
-
-</body>
-</html>
+df = pd.DataFrame(data)
+import ace_tools as tools; tools.display_dataframe_to_user(name="روابط الشركات - دفعة أولى", dataframe=df)
