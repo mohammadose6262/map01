@@ -2,25 +2,50 @@
 <html lang="ar" dir="rtl">
 <head>
   <meta charset="UTF-8">
-  <title>لوحة معلومات</title>
+  <title>لوحة الخريطة</title>
   <style>
-    html, body {
+    body {
       margin: 0;
-      padding: 0;
-      height: 100%;
-      overflow: hidden;
+      background-color: #f2f2f2;
+      font-family: 'Tahoma', sans-serif;
     }
+
+    header {
+      background-color: #007b83;
+      color: white;
+      padding: 20px;
+      text-align: center;
+    }
+
+    .logo {
+      width: 80px;
+      height: auto;
+      margin-bottom: 10px;
+    }
+
+    .map-container {
+      margin: 20px;
+      border: 3px solid #007b83;
+      box-shadow: 0 0 10px rgba(0,0,0,0.1);
+    }
+
     iframe {
-      position: absolute;
-      top: 0;
-      left: 0;
       width: 100%;
-      height: 100%;
+      height: 80vh;
       border: none;
     }
   </style>
 </head>
 <body>
-  <iframe src="https://www.arcgis.com/apps/dashboards/a0bf1c9da92146cd91240cd81335d50e"></iframe>
+
+  <header>
+    <img src="https://upload.wikimedia.org/wikipedia/commons/thumb/3/36/Logo_placeholder.svg/200px-Logo_placeholder.svg.png" alt="شعار" class="logo">
+    <h1>خريطة الحملات الميدانية 1446هـ</h1>
+  </header>
+
+  <div class="map-container">
+    <iframe src="https://www.arcgis.com/apps/dashboards/a0bf1c9da92146cd91240cd81335d50e"></iframe>
+  </div>
+
 </body>
 </html>
