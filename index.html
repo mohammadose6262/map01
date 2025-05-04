@@ -2,50 +2,78 @@
 <html lang="ar" dir="rtl">
 <head>
   <meta charset="UTF-8">
-  <title>لوحة الخريطة</title>
+  <title>خرائط الشركات</title>
   <style>
     body {
       margin: 0;
-      background-color: #f2f2f2;
-      font-family: 'Tahoma', sans-serif;
+      font-family: Tahoma, sans-serif;
+      background-color: #f4f4f4;
+      display: flex;
+      flex-direction: row-reverse;
     }
 
-    header {
+    .sidebar {
+      width: 250px;
       background-color: #007b83;
       color: white;
+      height: 100vh;
+      overflow-y: auto;
       padding: 20px;
-      text-align: center;
     }
 
-    .logo {
-      width: 80px;
-      height: auto;
-      margin-bottom: 10px;
+    .sidebar h2 {
+      margin-top: 0;
     }
 
-    .map-container {
-      margin: 20px;
-      border: 3px solid #007b83;
-      box-shadow: 0 0 10px rgba(0,0,0,0.1);
+    .button {
+      display: block;
+      background-color: #00a9a5;
+      color: white;
+      padding: 10px;
+      margin: 5px 0;
+      border: none;
+      width: 100%;
+      text-align: right;
+      cursor: pointer;
+      border-radius: 5px;
+    }
+
+    .button:hover {
+      background-color: #008b88;
+    }
+
+    .content {
+      flex-grow: 1;
+      padding: 0;
     }
 
     iframe {
       width: 100%;
-      height: 80vh;
+      height: 100vh;
       border: none;
     }
   </style>
 </head>
 <body>
 
-  <header>
-    <img src="https://upload.wikimedia.org/wikipedia/commons/thumb/3/36/Logo_placeholder.svg/200px-Logo_placeholder.svg.png" alt="شعار" class="logo">
-    <h1>خريطة الحملات الميدانية 1446هـ</h1>
-  </header>
+<div class="sidebar">
+  <h2>الشركات</h2>
+  <button class="button" onclick="loadMap('https://www.arcgis.com/apps/dashboards/e57b7dc27c7d4d5b872af63ef196b04e')">مشارق المتميزة</button>
+  <button class="button" onclick="loadMap('https://www.arcgis.com/apps/dashboards/84d8803bc1aa42e697b2e9ae362d76ce')">مناسك المشاعر</button>
+  <button class="button" onclick="loadMap('https://www.arcgis.com/apps/dashboards/82fa12d8165742518b4fc8944b062857')">ضيوف البيت</button>
+  <button class="button" onclick="loadMap('https://www.arcgis.com/apps/dashboards/c6af4ec7c69a4ff8b6ec7e070fa3a413')">اكرام الضيف</button>
+  <button class="button" onclick="loadMap('https://www.arcgis.com/apps/dashboards/59c6163bb60d41c1864217b4d198ae45')">الرفادة</button>
+</div>
 
-  <div class="map-container">
-    <iframe src="https://www.arcgis.com/apps/dashboards/a0bf1c9da92146cd91240cd81335d50e"></iframe>
-  </div>
+<div class="content">
+  <iframe id="mapFrame" src="https://www.arcgis.com/apps/dashboards/e57b7dc27c7d4d5b872af63ef196b04e"></iframe>
+</div>
+
+<script>
+  function loadMap(url) {
+    document.getElementById("mapFrame").src = url;
+  }
+</script>
 
 </body>
 </html>
