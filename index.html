@@ -1,68 +1,1527 @@
 <!DOCTYPE html>
 <html lang="ar" dir="rtl">
 <head>
-  <meta charset="UTF-8" />
-  <title>خريطة الشركات</title>
-  <style>
-    body {
-      font-family: Tahoma, sans-serif;
-      margin: 0;
-      background-color: #f4f4f4;
-    }
-    header {
-      background-color: teal;
-      padding: 15px;
-      text-align: center;
-      color: white;
-      font-size: 24px;
-      font-weight: bold;
-    }
-    .buttons {
-      display: flex;
-      flex-wrap: wrap;
-      justify-content: center;
-      background-color: #00796b;
-      padding: 10px;
-    }
-    .buttons button {
-      background-color: #009688;
-      border: none;
-      color: white;
-      padding: 10px 20px;
-      margin: 5px;
-      border-radius: 5px;
-      cursor: pointer;
-    }
-    .buttons button:hover {
-      background-color: #004d40;
-    }
-    iframe {
-      width: 100%;
-      height: calc(100vh - 120px); /* ياخذ كل الشاشة ناقص الهيدر والأزرار */
-      border: none;
-      display: block;
-    }
-  </style>
-  <script>
-    function decodeAndLoad(encodedUrl) {
-      const url = atob(encodedUrl);
-      document.getElementById("mapFrame").src = url;
-    }
-  </script>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>نظام تتبع أسطول الشاحنات</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.js"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.css" />
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css" />
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Tajawal:wght@400;500;700&display=swap');
+        
+        :root {
+            --primary-color: #2c3e50;
+            --secondary-color: #27ae60;
+            --light-color: #ecf0f1;
+            --danger-color: #e74c3c;
+            --warning-color: #f39c12;
+            --white: #ffffff;
+            --gray: #95a5a6;
+            --dark-gray: #7f8c8d;
+        }
+        
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Tajawal', sans-serif;
+        }
+        
+        body {
+            background-color: #f5f6fa;
+            color: var(--primary-color);
+        }
+        
+        .dashboard {
+            display: flex;
+            min-height: 100vh;
+        }
+        
+        .sidebar {
+            width: 280px;
+            background-color: var(--primary-color);
+            color: var(--white);
+            transition: all 0.3s;
+            z-index: 1000;
+        }
+        
+        .logo {
+            padding: 20px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+        }
+        
+        .logo img {
+            width: 40px;
+            height: 40px;
+            margin-left: 10px;
+        }
+        
+        .logo h1 {
+            font-size: 20px;
+            font-weight: 700;
+        }
+        
+        .menu {
+            padding: 20px 0;
+        }
+        
+        .menu-item {
+            padding: 15px 25px;
+            display: flex;
+            align-items: center;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+        
+        .menu-item:hover {
+            background-color: rgba(255, 255, 255, 0.1);
+        }
+        
+        .menu-item.active {
+            background-color: var(--secondary-color);
+        }
+        
+        .menu-item i {
+            margin-left: 15px;
+            font-size: 18px;
+        }
+        
+        .menu-item span {
+            font-size: 16px;
+        }
+        
+        .user-info {
+            padding: 20px;
+            display: flex;
+            align-items: center;
+            border-top: 1px solid rgba(255, 255, 255, 0.1);
+            margin-top: auto;
+            position: absolute;
+            bottom: 0;
+            width: 100%;
+        }
+        
+        .user-avatar {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            background-color: var(--secondary-color);
+            color: var(--white);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-left: 10px;
+            font-weight: bold;
+        }
+        
+        .user-details {
+            flex: 1;
+        }
+        
+        .user-name {
+            font-size: 14px;
+            font-weight: 500;
+        }
+        
+        .user-role {
+            font-size: 12px;
+            color: var(--gray);
+        }
+        
+        .logout {
+            font-size: 18px;
+            cursor: pointer;
+            color: var(--gray);
+            transition: all 0.3s;
+        }
+        
+        .logout:hover {
+            color: var(--danger-color);
+        }
+        
+        .main-content {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            overflow-x: hidden;
+        }
+        
+        .header {
+            padding: 20px;
+            background-color: var(--white);
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        .toggle-sidebar {
+            background: none;
+            border: none;
+            font-size: 20px;
+            cursor: pointer;
+            color: var(--primary-color);
+            display: none;
+        }
+        
+        .page-title {
+            font-size: 24px;
+            font-weight: 700;
+        }
+        
+        .header-actions {
+            display: flex;
+            gap: 15px;
+        }
+        
+        .header-btn {
+            padding: 8px 16px;
+            border-radius: 5px;
+            border: none;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            font-weight: 500;
+            transition: all 0.3s;
+        }
+        
+        .primary-btn {
+            background-color: var(--secondary-color);
+            color: var(--white);
+        }
+        
+        .primary-btn:hover {
+            background-color: #219653;
+        }
+        
+        .content {
+            flex: 1;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
+        
+        .stats-container {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 20px;
+        }
+        
+        .stat-card {
+            background-color: var(--white);
+            border-radius: 10px;
+            padding: 20px;
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.05);
+            display: flex;
+            flex-direction: column;
+        }
+        
+        .stat-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 15px;
+        }
+        
+        .stat-title {
+            font-size: 16px;
+            color: var(--dark-gray);
+        }
+        
+        .stat-icon {
+            width: 40px;
+            height: 40px;
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 18px;
+            color: var(--white);
+        }
+        
+        .truck-icon {
+            background-color: var(--secondary-color);
+        }
+        
+        .moving-icon {
+            background-color: var(--warning-color);
+        }
+        
+        .stopped-icon {
+            background-color: var(--danger-color);
+        }
+        
+        .maintenance-icon {
+            background-color: var(--gray);
+        }
+        
+        .stat-value {
+            font-size: 28px;
+            font-weight: 700;
+        }
+        
+        .map-container {
+            background-color: var(--white);
+            border-radius: 10px;
+            padding: 20px;
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.05);
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+        }
+        
+        .map-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 15px;
+        }
+        
+        .map-title {
+            font-size: 18px;
+            font-weight: 700;
+        }
+        
+        .map-actions {
+            display: flex;
+            gap: 10px;
+        }
+        
+        .map-btn {
+            background: none;
+            border: none;
+            font-size: 16px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            color: var(--dark-gray);
+            transition: all 0.3s;
+            padding: 5px 10px;
+            border-radius: 5px;
+        }
+        
+        .map-btn:hover {
+            background-color: #f5f6fa;
+        }
+        
+        .map-btn i {
+            margin-left: 5px;
+        }
+        
+        #map {
+            flex: 1;
+            min-height: 500px;
+            border-radius: 5px;
+            z-index: 1;
+        }
+        
+        .truck-popup {
+            font-family: 'Tajawal', sans-serif;
+            text-align: right;
+            direction: rtl;
+        }
+        
+        .truck-popup-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 10px;
+            border-bottom: 1px solid #eee;
+            padding-bottom: 10px;
+        }
+        
+        .truck-popup-title {
+            font-weight: bold;
+            font-size: 16px;
+            color: var(--primary-color);
+        }
+        
+        .truck-popup-actions {
+            display: flex;
+            gap: 5px;
+        }
+        
+        .truck-popup-btn {
+            border: none;
+            background: none;
+            font-size: 14px;
+            cursor: pointer;
+            padding: 3px;
+            border-radius: 3px;
+            color: var(--dark-gray);
+            transition: all 0.3s;
+        }
+        
+        .truck-popup-btn:hover {
+            background-color: #f5f6fa;
+        }
+        
+        .truck-popup-btn.edit:hover {
+            color: var(--secondary-color);
+        }
+        
+        .truck-popup-btn.delete:hover {
+            color: var(--danger-color);
+        }
+        
+        .truck-popup-info {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+        
+        .truck-popup-detail {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        .truck-popup-label {
+            font-size: 14px;
+            color: var(--dark-gray);
+        }
+        
+        .truck-popup-value {
+            font-size: 14px;
+            font-weight: 500;
+        }
+        
+        .truck-popup-driver {
+            margin-top: 10px;
+            padding-top: 10px;
+            border-top: 1px solid #eee;
+        }
+        
+        .truck-popup-driver-title {
+            font-weight: bold;
+            margin-bottom: 5px;
+        }
+        
+        .modal {
+            display: none;
+            position: fixed;
+            z-index: 2000;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            overflow: auto;
+            background-color: rgba(0, 0, 0, 0.4);
+            justify-content: center;
+            align-items: center;
+        }
+        
+        .modal-content {
+            background-color: #fefefe;
+            margin: auto;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+            width: 500px;
+            max-width: 90%;
+            max-height: 90vh;
+            overflow-y: auto;
+        }
+        
+        .modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+            padding-bottom: 15px;
+            border-bottom: 1px solid #eee;
+        }
+        
+        .modal-title {
+            font-size: 20px;
+            font-weight: 700;
+        }
+        
+        .close {
+            color: #aaa;
+            font-size: 28px;
+            font-weight: bold;
+            cursor: pointer;
+        }
+        
+        .close:hover {
+            color: var(--danger-color);
+        }
+        
+        .form-group {
+            margin-bottom: 15px;
+        }
+        
+        .form-group label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: 500;
+        }
+        
+        .form-control {
+            width: 100%;
+            padding: 10px 15px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            font-size: 16px;
+            transition: all 0.3s;
+        }
+        
+        .form-control:focus {
+            border-color: var(--secondary-color);
+            outline: none;
+        }
+        
+        .form-header {
+            margin-bottom: 5px;
+            font-weight: 700;
+            font-size: 16px;
+        }
+        
+        .form-subgroup {
+            background-color: #f9f9f9;
+            padding: 15px;
+            border-radius: 5px;
+            margin-bottom: 15px;
+        }
+        
+        .form-footer {
+            display: flex;
+            justify-content: flex-end;
+            gap: 10px;
+            margin-top: 20px;
+        }
+        
+        .btn {
+            padding: 10px 20px;
+            border-radius: 5px;
+            border: none;
+            cursor: pointer;
+            font-weight: 500;
+            transition: all 0.3s;
+        }
+        
+        .btn-primary {
+            background-color: var(--secondary-color);
+            color: var(--white);
+        }
+        
+        .btn-primary:hover {
+            background-color: #219653;
+        }
+        
+        .btn-secondary {
+            background-color: var(--light-color);
+            color: var(--primary-color);
+        }
+        
+        .btn-secondary:hover {
+            background-color: #dfe6e9;
+        }
+        
+        .btn-danger {
+            background-color: var(--danger-color);
+            color: var(--white);
+        }
+        
+        .btn-danger:hover {
+            background-color: #c0392b;
+        }
+        
+        .progress {
+            height: 10px;
+            width: 100%;
+            background-color: #eee;
+            border-radius: 5px;
+            overflow: hidden;
+        }
+        
+        .progress-bar {
+            height: 100%;
+            border-radius: 5px;
+            transition: width 0.3s;
+        }
+        
+        .progress-normal {
+            background-color: var(--secondary-color);
+        }
+        
+        .progress-warning {
+            background-color: var(--warning-color);
+        }
+        
+        .progress-danger {
+            background-color: var(--danger-color);
+        }
+        
+        /* Truck list styles */
+        .truck-list {
+            display: none;
+            background-color: var(--white);
+            border-radius: 10px;
+            padding: 20px;
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.05);
+        }
+        
+        .truck-list-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 15px;
+        }
+        
+        .truck-list-title {
+            font-size: 18px;
+            font-weight: 700;
+        }
+        
+        .truck-list-actions {
+            display: flex;
+            gap: 10px;
+        }
+        
+        .truck-list-table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+        
+        .truck-list-table th, .truck-list-table td {
+            padding: 12px 15px;
+            text-align: right;
+        }
+        
+        .truck-list-table th {
+            background-color: #f5f6fa;
+            font-weight: 500;
+            color: var(--dark-gray);
+        }
+        
+        .truck-list-table tr {
+            border-bottom: 1px solid #eee;
+            transition: all 0.3s;
+        }
+        
+        .truck-list-table tr:hover {
+            background-color: #f9f9f9;
+        }
+        
+        .truck-status {
+            display: inline-block;
+            padding: 5px 10px;
+            border-radius: 15px;
+            font-size: 12px;
+            font-weight: 500;
+        }
+        
+        .status-moving {
+            background-color: rgba(39, 174, 96, 0.1);
+            color: var(--secondary-color);
+        }
+        
+        .status-stopped {
+            background-color: rgba(243, 156, 18, 0.1);
+            color: var(--warning-color);
+        }
+        
+        .status-maintenance {
+            background-color: rgba(231, 76, 60, 0.1);
+            color: var(--danger-color);
+        }
+        
+        .actions-cell {
+            display: flex;
+            gap: 5px;
+            justify-content: center;
+        }
+        
+        .action-btn {
+            width: 30px;
+            height: 30px;
+            border-radius: 5px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            transition: all 0.3s;
+            font-size: 14px;
+        }
+        
+        .view-btn {
+            background-color: rgba(52, 152, 219, 0.1);
+            color: #3498db;
+        }
+        
+        .view-btn:hover {
+            background-color: #3498db;
+            color: var(--white);
+        }
+        
+        .edit-btn {
+            background-color: rgba(39, 174, 96, 0.1);
+            color: var(--secondary-color);
+        }
+        
+        .edit-btn:hover {
+            background-color: var(--secondary-color);
+            color: var(--white);
+        }
+        
+        .delete-btn {
+            background-color: rgba(231, 76, 60, 0.1);
+            color: var(--danger-color);
+        }
+        
+        .delete-btn:hover {
+            background-color: var(--danger-color);
+            color: var(--white);
+        }
+        
+        /* User management page */
+        .user-management {
+            display: none;
+            background-color: var(--white);
+            border-radius: 10px;
+            padding: 20px;
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.05);
+        }
+        
+        /* Responsive styles */
+        @media (max-width: 1024px) {
+            .sidebar {
+                width: 80px;
+            }
+            
+            .logo h1, .menu-item span, .user-details {
+                display: none;
+            }
+            
+            .menu-item {
+                justify-content: center;
+                padding: 15px 0;
+            }
+            
+            .menu-item i {
+                margin: 0;
+            }
+            
+            .user-info {
+                justify-content: center;
+                padding: 10px;
+            }
+            
+            .user-avatar {
+                margin: 0;
+            }
+            
+            .logout {
+                display: none;
+            }
+        }
+        
+        @media (max-width: 768px) {
+            .dashboard {
+                flex-direction: column;
+            }
+            
+            .sidebar {
+                width: 100%;
+                position: fixed;
+                bottom: 0;
+                height: 60px;
+            }
+            
+            .logo, .user-info {
+                display: none;
+            }
+            
+            .menu {
+                display: flex;
+                padding: 0;
+                height: 100%;
+            }
+            
+            .menu-item {
+                flex: 1;
+                padding: 0;
+                flex-direction: column;
+                font-size: 12px;
+                justify-content: center;
+                gap: 5px;
+            }
+            
+            .menu-item i {
+                font-size: 16px;
+                margin: 0;
+            }
+            
+            .menu-item span {
+                display: block;
+                font-size: 12px;
+            }
+            
+            .main-content {
+                margin-bottom: 60px;
+            }
+            
+            .toggle-sidebar {
+                display: block;
+            }
+            
+            .stats-container {
+                grid-template-columns: 1fr 1fr;
+            }
+            
+            .stat-card {
+                padding: 15px;
+            }
+            
+            .stat-value {
+                font-size: 20px;
+            }
+            
+            #map {
+                min-height: 300px;
+            }
+        }
+        
+        @media (max-width: 576px) {
+            .header {
+                flex-direction: column;
+                align-items: flex-start;
+                gap: 10px;
+            }
+            
+            .header-actions {
+                width: 100%;
+            }
+            
+            .stats-container {
+                grid-template-columns: 1fr;
+            }
+            
+            .truck-list-table {
+                display: block;
+                overflow-x: auto;
+            }
+        }
+    </style>
 </head>
 <body>
+    <div class="dashboard">
+        <div class="sidebar">
+            <div class="logo">
+                <i class="fas fa-truck-moving" style="font-size: 24px;"></i>
+                <h1>نظام تتبع الشاحنات</h1>
+            </div>
+            <div class="menu">
+                <div class="menu-item active" onclick="showSection('dashboard-section')">
+                    <i class="fas fa-home"></i>
+                    <span>الرئيسية</span>
+                </div>
+                <div class="menu-item" onclick="showSection('truck-list')">
+                    <i class="fas fa-truck"></i>
+                    <span>الشاحنات</span>
+                </div>
+                <div class="menu-item" onclick="showSection('user-management')">
+                    <i class="fas fa-users"></i>
+                    <span>المستخدمين</span>
+                </div>
+                <div class="menu-item">
+                    <i class="fas fa-chart-bar"></i>
+                    <span>التقارير</span>
+                </div>
+                <div class="menu-item">
+                    <i class="fas fa-cog"></i>
+                    <span>الإعدادات</span>
+                </div>
+            </div>
+            <div class="user-info">
+                <div class="user-avatar">أ</div>
+                <div class="user-details">
+                    <div class="user-name">أحمد محمد</div>
+                    <div class="user-role">مدير النظام</div>
+                </div>
+                <div class="logout">
+                    <i class="fas fa-sign-out-alt"></i>
+                </div>
+            </div>
+        </div>
+        <div class="main-content">
+            <div class="header">
+                <div class="left-section">
+                    <button class="toggle-sidebar">
+                        <i class="fas fa-bars"></i>
+                    </button>
+                    <h2 class="page-title">لوحة المعلومات</h2>
+                </div>
+                <div class="header-actions">
+                    <button class="header-btn primary-btn" onclick="openAddTruckModal()">
+                        <i class="fas fa-plus"></i>
+                        إضافة شاحنة
+                    </button>
+                </div>
+            </div>
+            <div class="content">
+                <div id="dashboard-section">
+                    <div class="stats-container">
+                        <div class="stat-card">
+                            <div class="stat-header">
+                                <div class="stat-title">إجمالي الشاحنات</div>
+                                <div class="stat-icon truck-icon">
+                                    <i class="fas fa-truck"></i>
+                                </div>
+                            </div>
+                            <div class="stat-value">15</div>
+                        </div>
+                        <div class="stat-card">
+                            <div class="stat-header">
+                                <div class="stat-title">شاحنات متحركة</div>
+                                <div class="stat-icon moving-icon">
+                                    <i class="fas fa-truck-moving"></i>
+                                </div>
+                            </div>
+                            <div class="stat-value">8</div>
+                        </div>
+                        <div class="stat-card">
+                            <div class="stat-header">
+                                <div class="stat-title">شاحنات متوقفة</div>
+                                <div class="stat-icon stopped-icon">
+                                    <i class="fas fa-stop-circle"></i>
+                                </div>
+                            </div>
+                            <div class="stat-value">5</div>
+                        </div>
+                        <div class="stat-card">
+                            <div class="stat-header">
+                                <div class="stat-title">في الصيانة</div>
+                                <div class="stat-icon maintenance-icon">
+                                    <i class="fas fa-tools"></i>
+                                </div>
+                            </div>
+                            <div class="stat-value">2</div>
+                        </div>
+                    </div>
+                    <div class="map-container">
+                        <div class="map-header">
+                            <div class="map-title">خريطة تتبع الشاحنات</div>
+                            <div class="map-actions">
+                                <button class="map-btn">
+                                    <i class="fas fa-sync-alt"></i>
+                                    تحديث
+                                </button>
+                                <button class="map-btn">
+                                    <i class="fas fa-expand-alt"></i>
+                                    تكبير
+                                </button>
+                            </div>
+                        </div>
+                        <div id="map"></div>
+                    </div>
+                </div>
+                
+                <div class="truck-list">
+                    <div class="truck-list-header">
+                        <div class="truck-list-title">قائمة الشاحنات</div>
+                        <div class="truck-list-actions">
+                            <button class="header-btn primary-btn" onclick="openAddTruckModal()">
+                                <i class="fas fa-plus"></i>
+                                إضافة شاحنة
+                            </button>
+                        </div>
+                    </div>
+                    <table class="truck-list-table">
+                        <thead>
+                            <tr>
+                                <th>الرقم</th>
+                                <th>الاسم</th>
+                                <th>الحالة</th>
+                                <th>مستوى الديزل</th>
+                                <th>درجة الحرارة</th>
+                                <th>السائق</th>
+                                <th>الموقع</th>
+                                <th>الإجراءات</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td>001</td>
+                                <td>شاحنة نقل بضائع #1</td>
+                                <td><span class="truck-status status-moving">متحركة</span></td>
+                                <td>75%</td>
+                                <td>4°C</td>
+                                <td>خالد أحمد</td>
+                                <td>جدة - طريق المدينة</td>
+                                <td>
+                                    <div class="actions-cell">
+                                        <div class="action-btn view-btn" title="عرض">
+                                            <i class="fas fa-eye"></i>
+                                        </div>
+                                        <div class="action-btn edit-btn" title="تعديل" onclick="openEditTruckModal()">
+                                            <i class="fas fa-edit"></i>
+                                        </div>
+                                        <div class="action-btn delete-btn" title="حذف" onclick="openDeleteTruckModal()">
+                                            <i class="fas fa-trash"></i>
+                                        </div>
+                                    </div>
+                                </td>
+                            </tr>
+                            <tr>
+                                <td>002</td>
+                                <td>شاحنة نقل بضائع #2</td>
+                                <td><span class="truck-status status-stopped">متوقفة</span></td>
+                                <td>45%</td>
+                                <td>2°C</td>
+                                <td>محمد علي</td>
+                                <td>مكة - طريق الجموم</td>
+                                <td>
+                                    <div class="actions-cell">
+                                        <div class="action-btn view-btn" title="عرض">
+                                            <i class="fas fa-eye"></i>
+                                        </div>
+                                        <div class="action-btn edit-btn" title="تعديل" onclick="openEditTruckModal()">
+                                            <i class="fas fa-edit"></i>
+                                        </div>
+                                        <div class="action-btn delete-btn" title="حذف" onclick="openDeleteTruckModal()">
+                                            <i class="fas fa-trash"></i>
+                                        </div>
+                                    </div>
+                                </td>
+                            </tr>
+                            <tr>
+                                <td>003</td>
+                                <td>شاحنة تبريد #1</td>
+                                <td><span class="truck-status status-maintenance">صيانة</span></td>
+                                <td>90%</td>
+                                <td>-18°C</td>
+                                <td>سعد محمد</td>
+                                <td>جدة - ورشة الصيانة</td>
+                                <td>
+                                    <div class="actions-cell">
+                                        <div class="action-btn view-btn" title="عرض">
+                                            <i class="fas fa-eye"></i>
+                                        </div>
+                                        <div class="action-btn edit-btn" title="تعديل" onclick="openEditTruckModal()">
+                                            <i class="fas fa-edit"></i>
+                                        </div>
+                                        <div class="action-btn delete-btn" title="حذف" onclick="openDeleteTruckModal()">
+                                            <i class="fas fa-trash"></i>
+                                        </div>
+                                    </div>
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+                
+                <div class="user-management">
+                    <div class="truck-list-header">
+                        <div class="truck-list-title">إدارة المستخدمين</div>
+                        <div class="truck-list-actions">
+                            <button class="header-btn primary-btn">
+                                <i class="fas fa-plus"></i>
+                                إضافة مستخدم
+                            </button>
+                        </div>
+                    </div>
+                    <table class="truck-list-table">
+                        <thead>
+                            <tr>
+                                <th>الرقم</th>
+                                <th>الاسم</th>
+                                <th>البريد الإلكتروني</th>
+                                <th>الصلاحية</th>
+                                <th>آخر دخول</th>
+                                <th>الحالة</th>
+                                <th>الإجراءات</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td>001</td>
+                                <td>أحمد محمد</td>
+                                <td>ahmed@example.com</td>
+                                <td>مدير النظام</td>
+                                <td>اليوم، 10:45 ص</td>
+                                <td><span class="truck-status status-moving">نشط</span></td>
+                                <td>
+                                    <div class="actions-cell">
+                                        <div class="action-btn edit-btn" title="تعديل">
+                                            <i class="fas fa-edit"></i>
+                                        </div>
+                                        <div class="action-btn delete-btn" title="حذف">
+                                            <i class="fas fa-trash"></i>
+                                        </div>
+                                    </div>
+                                </td>
+                            </tr>
+                            <tr>
+                                <td>002</td>
+                                <td>خالد عبدالله</td>
+                                <td>khaled@example.com</td>
+                                <td>مراقب</td>
+                                <td>أمس، 3:20 م</td>
+                                <td><span class="truck-status status-moving">نشط</span></td>
+                                <td>
+                                    <div class="actions-cell">
+                                        <div class="action-btn edit-btn" title="تعديل">
+                                            <i class="fas fa-edit"></i>
+                                        </div>
+                                        <div class="action-btn delete-btn" title="حذف">
+                                            <i class="fas fa-trash"></i>
+                                        </div>
+                                    </div>
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Modal for Adding/Editing Trucks -->
+    <div id="truckModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3 class="modal-title" id="truckModalTitle">إضافة شاحنة جديدة</h3>
+                <span class="close" onclick="closeModal('truckModal')">&times;</span>
+            </div>
+            <form id="truckForm">
+                <div class="form-group">
+                    <label for="truckId">الرقم التعريفي للشاحنة</label>
+                    <input type="text" class="form-control" id="truckId" placeholder="أدخل الرقم التعريفي">
+                </div>
+                <div class="form-group">
+                    <label for="truckName">اسم الشاحنة</label>
+                    <input type="text" class="form-control" id="truckName" placeholder="أدخل اسم الشاحنة">
+                </div>
+                <div class="form-group">
+                    <label for="truckType">نوع الشاحنة</label>
+                    <select class="form-control" id="truckType">
+                        <option value="cargo">شاحنة بضائع</option>
+                        <option value="refrigerated">شاحنة مبردة</option>
+                        <option value="tanker">ناقلة سوائل</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label for="fuelLevel">مستوى الديزل (%)</label>
+                    <input type="range" class="form-control" id="fuelLevel" min="0" max="100" value="75">
+                    <div class="progress" style="margin-top: 10px;">
+                        <div class="progress-bar progress-normal" style="width: 75%"></div>
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label for="temperature">درجة حرارة البرادة (°C)</label>
+                    <input type="number" class="form-control" id="temperature" value="4">
+                </div>
+                
+                <div class="form-subgroup">
+                    <div class="form-header">بيانات السائق</div>
+                    <div class="form-group">
+                        <label for="driverName">اسم السائق</label>
+                        <input type="text" class="form-control" id="driverName" placeholder="أدخل اسم السائق">
+                    </div>
+                    <div class="form-group">
+                        <label for="driverPhone">رقم الجوال</label>
+                        <input type="tel" class="form-control" id="driverPhone" placeholder="أدخل رقم الجوال">
+                    </div>
+                </div>
+                
+                <div class="form-group">
+                    <label for="truckStatus">حالة الشاحنة</label>
+                    <select class="form-control" id="truckStatus">
+                        <option value="moving">متحركة</option>
+                        <option value="stopped">متوقفة</option>
+                        <option value="maintenance">في الصيانة</option>
+                    </select>
+                </div>
+                
+                <div class="form-footer">
+                    <button type="button" class="btn btn-secondary" onclick="closeModal('truckModal')">إلغاء</button>
+                    <button type="button" class="btn btn-primary" id="saveTruckBtn">حفظ</button>
+                </div>
+            </form>
+        </div>
+    </div>
+    
+    <!-- Delete Confirmation Modal -->
+    <div id="deleteModal" class="modal">
+        <div class="modal-content" style="max-width: 400px;">
+            <div class="modal-header">
+                <h3 class="modal-title">تأكيد الحذف</h3>
+                <span class="close" onclick="closeModal('deleteModal')">&times;</span>
+            </div>
+            <p>هل أنت متأكد من رغبتك في حذف هذه الشاحنة؟ هذا الإجراء لا يمكن التراجع عنه.</p>
+            <div class="form-footer">
+                <button type="button" class="btn btn-secondary" onclick="closeModal('deleteModal')">إلغاء</button>
+                <button type="button" class="btn btn-danger">تأكيد الحذف</button>
+            </div>
+        </div>
+    </div>
 
-  <header>خريطة الشركات - ArcGIS Dashboards</header>
-
-  <div class="buttons">
-    <button onclick="decodeAndLoad('aHR0cHM6Ly93d3cuYXJjZ2lzLmNvbS9hcHBzL2Rhc2hib2FyZHMvYTBmMWM5ZGE5MjE0NmNkOTEyNDBjZDgxMzM1ZDUwZQ==')">داشبورد التخصيص العام</button>
-    <button onclick="decodeAndLoad('aHR0cHM6Ly93d3cuYXJjZ2lzLmNvbS9hcHBzL2Rhc2hib2FyZHMvZTU3YjdkYzBmNThkNGE4NWIzOTJjZjU3NzNjYjU4MzY=')">مشارق المتميزة</button>
-    <button onclick="decodeAndLoad('aHR0cHM6Ly93d3cuYXJjZ2lzLmNvbS9hcHBzL2Rhc2hib2FyZHMvODRkODgwMzc3ZjFjNDE2OGE2MzMwYzBjMWJlNTM5NzE=')">مناسك المشاعر</button>
-    <button onclick="decodeAndLoad('aHR0cHM6Ly93d3cuYXJjZ2lzLmNvbS9hcHBzL2Rhc2hib2FyZHMvODJmYTEyZDM4N2EyNDI2MzhiNzMyMDcyODhmZWE0MQ==')">ضيوف البيت</button>
-    <button onclick="decodeAndLoad('aHR0cHM6Ly93d3cuYXJjZ2lzLmNvbS9hcHBzL2Rhc2hib2FyZHMvYzZhZjRlYzk4NWU4NDFlMjk5Mzc1ZmVmYjQyNGQyMzM=')">إكرام الضيف</button>
-  </div>
-
-  <iframe id="mapFrame" src=""></iframe>
-
+    <script>
+        // Sample truck data
+        const trucks = [
+            {
+                id: '001',
+                name: 'شاحنة نقل بضائع #1',
+                type: 'cargo',
+                status: 'moving',
+                fuelLevel: 75,
+                temperature: 4,
+                driver: {
+                    name: 'خالد أحمد',
+                    phone: '0555123456'
+                },
+                location: {
+                    lat: 21.543333,
+                    lng: 39.172779
+                }
+            },
+            {
+                id: '002',
+                name: 'شاحنة نقل بضائع #2',
+                type: 'cargo',
+                status: 'stopped',
+                fuelLevel: 45,
+                temperature: 2,
+                driver: {
+                    name: 'محمد علي',
+                    phone: '0555789012'
+                },
+                location: {
+                    lat: 21.389082,
+                    lng: 39.857937
+                }
+            },
+            {
+                id: '003',
+                name: 'شاحنة تبريد #1',
+                type: 'refrigerated',
+                status: 'maintenance',
+                fuelLevel: 90,
+                temperature: -18,
+                driver: {
+                    name: 'سعد محمد',
+                    phone: '0555456789'
+                },
+                location: {
+                    lat: 21.285407,
+                    lng: 39.237551
+                }
+            },
+            {
+                id: '004',
+                name: 'ناقلة وقود #1',
+                type: 'tanker',
+                status: 'moving',
+                fuelLevel: 65,
+                temperature: null,
+                driver: {
+                    name: 'فهد سعيد',
+                    phone: '0555234567'
+                },
+                location: {
+                    lat: 21.483333,
+                    lng: 39.242779
+                }
+            },
+            {
+                id: '005',
+                name: 'شاحنة تبريد #2',
+                type: 'refrigerated',
+                status: 'moving',
+                fuelLevel: 85,
+                temperature: -5,
+                driver: {
+                    name: 'عبدالله محمد',
+                    phone: '0555345678'
+                },
+                location: {
+                    lat: 21.422333,
+                    lng: 39.826779
+                }
+            }
+        ];
+        
+        // Initialize the map
+        let map;
+        let markers = {};
+        
+        document.addEventListener('DOMContentLoaded', function() {
+            initMap();
+            initFormListeners();
+            
+            // Show dashboard section by default
+            showSection('dashboard-section');
+            
+            // Update progress bar color on fuel level change
+            const fuelLevelInput = document.getElementById('fuelLevel');
+            const progressBar = document.querySelector('.progress-bar');
+            
+            fuelLevelInput.addEventListener('input', function() {
+                const value = this.value;
+                progressBar.style.width = value + '%';
+                
+                // Update progress bar color based on value
+                if (value > 60) {
+                    progressBar.className = 'progress-bar progress-normal';
+                } else if (value > 30) {
+                    progressBar.className = 'progress-bar progress-warning';
+                } else {
+                    progressBar.className = 'progress-bar progress-danger';
+                }
+            });
+        });
+        
+        function initMap() {
+            // Create a map centered on Jeddah
+            map = L.map('map').setView([21.543333, 39.172779], 10);
+            
+            // Add OpenStreetMap tiles
+            L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                maxZoom: 19,
+                attribution: '&copy; <a href="https://openstreetmap.org/copyright">OpenStreetMap contributors</a>'
+            }).addTo(map);
+            
+            // Add truck markers
+            addTruckMarkers();
+        }
+        
+        function addTruckMarkers() {
+            // Add markers for each truck
+            trucks.forEach(truck => {
+                // Create custom icon based on truck type and status
+                let iconUrl = '';
+                let iconColor = '';
+                
+                switch (truck.status) {
+                    case 'moving':
+                        iconColor = '#27ae60'; // Green
+                        break;
+                    case 'stopped':
+                        iconColor = '#f39c12'; // Orange
+                        break;
+                    case 'maintenance':
+                        iconColor = '#e74c3c'; // Red
+                        break;
+                }
+                
+                // Create custom icon HTML with Font Awesome
+                const iconHtml = `
+                    <div style="background-color: ${iconColor}; color: white; border-radius: 50%; width: 30px; height: 30px; display: flex; align-items: center; justify-content: center;">
+                        <i class="fas fa-truck"></i>
+                    </div>
+                `;
+                
+                // Create the marker with a custom icon
+                const icon = L.divIcon({
+                    html: iconHtml,
+                    className: 'truck-marker',
+                    iconSize: [30, 30]
+                });
+                
+                // Create the marker
+                const marker = L.marker([truck.location.lat, truck.location.lng], {
+                    icon: icon,
+                    title: truck.name
+                }).addTo(map);
+                
+                // Create a custom popup for the truck
+                const popupContent = `
+                    <div class="truck-popup">
+                        <div class="truck-popup-header">
+                            <div class="truck-popup-title">${truck.name} (${truck.id})</div>
+                            <div class="truck-popup-actions">
+                                <button class="truck-popup-btn edit" onclick="openEditTruckModal('${truck.id}')">
+                                    <i class="fas fa-edit"></i>
+                                </button>
+                                <button class="truck-popup-btn delete" onclick="openDeleteTruckModal('${truck.id}')">
+                                    <i class="fas fa-trash"></i>
+                                </button>
+                            </div>
+                        </div>
+                        <div class="truck-popup-info">
+                            <div class="truck-popup-detail">
+                                <div class="truck-popup-label">الحالة:</div>
+                                <div class="truck-popup-value">${getStatusText(truck.status)}</div>
+                            </div>
+                            <div class="truck-popup-detail">
+                                <div class="truck-popup-label">مستوى الديزل:</div>
+                                <div class="truck-popup-value">${truck.fuelLevel}%</div>
+                            </div>
+                            ${truck.temperature !== null ? `
+                            <div class="truck-popup-detail">
+                                <div class="truck-popup-label">درجة الحرارة:</div>
+                                <div class="truck-popup-value">${truck.temperature}°C</div>
+                            </div>
+                            ` : ''}
+                            <div class="truck-popup-driver">
+                                <div class="truck-popup-driver-title">بيانات السائق:</div>
+                                <div class="truck-popup-detail">
+                                    <div class="truck-popup-label">الاسم:</div>
+                                    <div class="truck-popup-value">${truck.driver.name}</div>
+                                </div>
+                                <div class="truck-popup-detail">
+                                    <div class="truck-popup-label">الجوال:</div>
+                                    <div class="truck-popup-value">${truck.driver.phone}</div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                `;
+                
+                marker.bindPopup(popupContent);
+                
+                // Store marker reference
+                markers[truck.id] = marker;
+            });
+        }
+        
+        function getStatusText(status) {
+            switch (status) {
+                case 'moving':
+                    return 'متحركة';
+                case 'stopped':
+                    return 'متوقفة';
+                case 'maintenance':
+                    return 'في الصيانة';
+                default:
+                    return status;
+            }
+        }
+        
+        function showSection(sectionId) {
+            // Hide all sections
+            document.getElementById('dashboard-section').style.display = 'none';
+            document.querySelector('.truck-list').style.display = 'none';
+            document.querySelector('.user-management').style.display = 'none';
+            
+            // Show the selected section
+            if (sectionId === 'dashboard-section') {
+                document.getElementById('dashboard-section').style.display = 'block';
+                document.querySelector('.page-title').textContent = 'لوحة المعلومات';
+            } else if (sectionId === 'truck-list') {
+                document.querySelector('.truck-list').style.display = 'block';
+                document.querySelector('.page-title').textContent = 'إدارة الشاحنات';
+            } else if (sectionId === 'user-management') {
+                document.querySelector('.user-management').style.display = 'block';
+                document.querySelector('.page-title').textContent = 'إدارة المستخدمين';
+            }
+            
+            // Update active menu item
+            const menuItems = document.querySelectorAll('.menu-item');
+            menuItems.forEach(item => {
+                item.classList.remove('active');
+            });
+            
+            // Find and activate the clicked menu item
+            const clickedMenuItem = Array.from(menuItems).find(item => {
+                return item.getAttribute('onclick') && item.getAttribute('onclick').includes(sectionId);
+            });
+            
+            if (clickedMenuItem) {
+                clickedMenuItem.classList.add('active');
+            }
+            
+            // Refresh map if showing dashboard
+            if (sectionId === 'dashboard-section') {
+                setTimeout(() => {
+                    map.invalidateSize();
+                }, 100);
+            }
+        }
+        
+        function openModal(modalId) {
+            document.getElementById(modalId).style.display = 'flex';
+        }
+        
+        function closeModal(modalId) {
+            document.getElementById(modalId).style.display = 'none';
+        }
+        
+        function openAddTruckModal() {
+            // Reset the form
+            document.getElementById('truckForm').reset();
+            document.getElementById('truckModalTitle').textContent = 'إضافة شاحنة جديدة';
+            document.getElementById('saveTruckBtn').textContent = 'إضافة';
+            
+            // Reset progress bar
+            const progressBar = document.querySelector('.progress-bar');
+            progressBar.style.width = '75%';
+            progressBar.className = 'progress-bar progress-normal';
+            
+            // Show modal
+            openModal('truckModal');
+        }
+        
+        function openEditTruckModal(truckId = '001') {
+            // Find the truck
+            const truck = trucks.find(t => t.id === truckId) || trucks[0];
+            
+            // Set form values
+            document.getElementById('truckId').value = truck.id;
+            document.getElementById('truckName').value = truck.name;
+            document.getElementById('truckType').value = truck.type;
+            document.getElementById('fuelLevel').value = truck.fuelLevel;
+            document.getElementById('temperature').value = truck.temperature !== null ? truck.temperature : '';
+            document.getElementById('driverName').value = truck.driver.name;
+            document.getElementById('driverPhone').value = truck.driver.phone;
+            document.getElementById('truckStatus').value = truck.status;
+            
+            // Update progress bar
+            const progressBar = document.querySelector('.progress-bar');
+            progressBar.style.width = truck.fuelLevel + '%';
+            
+            if (truck.fuelLevel > 60) {
+                progressBar.className = 'progress-bar progress-normal';
+            } else if (truck.fuelLevel > 30) {
+                progressBar.className = 'progress-bar progress-warning';
+            } else {
+                progressBar.className = 'progress-bar progress-danger';
+            }
+            
+            // Update modal title and button
+            document.getElementById('truckModalTitle').textContent = 'تعديل بيانات الشاحنة';
+            document.getElementById('saveTruckBtn').textContent = 'حفظ التغييرات';
+            
+            // Show modal
+            openModal('truckModal');
+        }
+        
+        function openDeleteTruckModal(truckId) {
+            openModal('deleteModal');
+        }
+        
+        function initFormListeners() {
+            // Handle save button click
+            document.getElementById('saveTruckBtn').addEventListener('click', function() {
+                // Get form values
+                const truckId = document.getElementById('truckId').value;
+                const truckName = document.getElementById('truckName').value;
+                
+                // Validate form
+                if (!truckId || !truckName) {
+                    alert('يرجى إدخال جميع البيانات المطلوبة');
+                    return;
+                }
+                
+                // In a real app, you would save the data to the server here
+                
+                // Close the modal
+                closeModal('truckModal');
+                
+                // Show success message
+                alert('تم حفظ البيانات بنجاح');
+            });
+        }
+    </script>
 </body>
 </html>
