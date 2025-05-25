@@ -89,6 +89,28 @@
       line-height: 1.5;
     }
     
+    .input-group {
+      margin: 20px 0;
+      text-align: right;
+    }
+    
+    .input-group label {
+      display: block;
+      margin-bottom: 8px;
+      font-weight: bold;
+      color: #333;
+    }
+    
+    .input-group input {
+      width: 100%;
+      padding: 12px;
+      border: 2px solid #ddd;
+      border-radius: 8px;
+      font-size: 16px;
+      text-align: center;
+      direction: ltr;
+    }
+    
     .coords {
       font-size: 12px;
       color: #999;
@@ -104,12 +126,17 @@
   <div class="container">
     <h2>📍 تتبع الموقع</h2>
     
+    <div class="input-group">
+      <label for="objectIdInput">رقم المركبة (Object ID):</label>
+      <input type="number" id="objectIdInput" value="1" min="1" placeholder="أدخل رقم المركبة">
+    </div>
+    
     <div class="status waiting" id="status">جاهز للبدء</div>
     
     <button class="btn" id="startBtn" onclick="startTracking()">🚀 بدء التتبع</button>
     <button class="btn stop" id="stopBtn" onclick="stopTracking()" disabled>⏹️ وصلت - إيقاف</button>
     
-    <div class="info" id="info">اضغط "بدء التتبع" لبدء تحديث موقعك كل 30 ثانية</div>
+    <div class="info" id="info">أدخل رقم المركبة واضغط "بدء التتبع"</div>
     <div class="coords" id="coords"></div>
   </div>
 
@@ -118,13 +145,28 @@
       
       // إعدادات ArcGIS
       const featureLayerUrl = "https://services6.arcgis.com/n6MCRBPSvlKSoB6e/arcgis/rest/services/%D9%81%D8%B1%D8%B6%D9%8A%D8%A9_%D8%AA%D8%AA%D8%A8%D8%B9/FeatureServer/0";
-      const objectId = 1; // رقم OBJECTID اللي تبي تحدثه
       
       let trackingActive = false;
       let trackingInterval = null;
 
+      // الحصول على رقم المركبة من المستخدم
+      function getObjectId() {
+        const input = document.getElementById('objectIdInput');
+        const objectId = parseInt(input.value);
+        
+        if (!objectId || objectId < 1) {
+          updateInfo("❌ يرجى إدخال رقم مركبة صحيح");
+          return null;
+        }
+        
+        return objectId;
+      }
+
       // تحديث الموقع في ArcGIS باستخدام esriRequest
       function updateLocationInArcGIS(lat, lon, status = "نشط") {
+        const objectId = getObjectId();
+        if (!objectId) return;
+        
         const updateUrl = `${featureLayerUrl}/updateFeatures`;
         
         // جرب مع FID بدلاً من OBJECTID
@@ -150,28 +192,28 @@
           }
         };
 
-        console.log("إرسال البيانات:", features); // للتشخيص
+        console.log("إرسال البيانات للمركبة رقم:", objectId, features); // للتشخيص
 
         esriRequest(updateUrl, options).then(response => {
           const data = response.data;
           console.log("الاستجابة:", data); // للتشخيص
           if (data.updateResults && data.updateResults[0].success) {
             console.log("✅ تم تحديث الموقع بنجاح");
-            updateInfo(`✅ تم التحديث - ${new Date().toLocaleTimeString('ar-SA')}`);
+            updateInfo(`✅ تم تحديث المركبة ${objectId} - ${new Date().toLocaleTimeString('ar-SA')}`);
           } else {
             console.error("Response:", data);
             // إذا فشل، جرب بدون FID
-            updateWithoutId(lat, lon, status);
+            updateWithoutId(lat, lon, status, objectId);
           }
         }).catch(error => {
           console.error("❌ خطأ في التحديث:", error);
           // إذا فشل، جرب بدون FID  
-          updateWithoutId(lat, lon, status);
+          updateWithoutId(lat, lon, status, objectId);
         });
       }
 
       // طريقة بديلة: تحديث بدون تحديد ID
-      function updateWithoutId(lat, lon, status) {
+      function updateWithoutId(lat, lon, status, objectId) {
         const updateUrl = `${featureLayerUrl}/updateFeatures`;
         
         const features = [{
@@ -272,11 +314,15 @@
       window.startTracking = async function() {
         if (trackingActive) return;
 
+        const objectId = getObjectId();
+        if (!objectId) return;
+
         trackingActive = true;
         updateStatus("🟢 التتبع نشط", "active");
         
         document.getElementById('startBtn').disabled = true;
         document.getElementById('stopBtn').disabled = false;
+        document.getElementById('objectIdInput').disabled = true; // منع التعديل أثناء التتبع
 
         updateInfo("🔄 جارٍ تحديد الموقع...");
 
@@ -287,7 +333,7 @@
           // بدء التحديث كل 30 ثانية
           trackingInterval = setInterval(trackAndUpdate, 30000);
           
-          updateInfo("✅ التتبع نشط - يتم التحديث كل 30 ثانية");
+          updateInfo(`✅ التتبع نشط للمركبة رقم ${objectId} - يتم التحديث كل 30 ثانية`);
 
           // منع إغلاق الشاشة
           if ('wakeLock' in navigator) {
@@ -322,6 +368,7 @@
         
         document.getElementById('startBtn').disabled = false;
         document.getElementById('stopBtn').disabled = true;
+        document.getElementById('objectIdInput').disabled = false; // السماح بالتعديل مرة أخرى
       };
 
       function updateStatus(text, type) {
@@ -346,7 +393,7 @@
       // فحص دعم الموقع عند تحميل الصفحة
       window.onload = function() {
         if ("geolocation" in navigator) {
-          updateInfo("✅ جاهز! اضغط بدء التتبع");
+          updateInfo("✅ جاهز! أدخل رقم المركبة واضغط بدء التتبع");
         } else {
           updateInfo("❌ المتصفح لا يدعم تحديد الموقع");
           document.getElementById('startBtn').disabled = true;
