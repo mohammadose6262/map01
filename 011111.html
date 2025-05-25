@@ -127,11 +127,17 @@
       function updateLocationInArcGIS(lat, lon, status = "نشط") {
         const updateUrl = `${featureLayerUrl}/updateFeatures`;
         
+        // جرب مع FID بدلاً من OBJECTID
         const features = [{
           attributes: {
-            OBJECTID: objectId,
-            Longitude: lon,
-            Latitude: lat
+            FID: objectId,
+            status: status,
+            timestamp: new Date().toISOString()
+          },
+          geometry: {
+            x: lon,
+            y: lat,
+            spatialReference: { wkid: 4326 }
           }
         }];
 
@@ -144,17 +150,65 @@
           }
         };
 
+        console.log("إرسال البيانات:", features); // للتشخيص
+
         esriRequest(updateUrl, options).then(response => {
           const data = response.data;
+          console.log("الاستجابة:", data); // للتشخيص
           if (data.updateResults && data.updateResults[0].success) {
             console.log("✅ تم تحديث الموقع بنجاح");
             updateInfo(`✅ تم التحديث - ${new Date().toLocaleTimeString('ar-SA')}`);
           } else {
             console.error("Response:", data);
-            throw new Error("فشل في التحديث");
+            // إذا فشل، جرب بدون FID
+            updateWithoutId(lat, lon, status);
           }
         }).catch(error => {
           console.error("❌ خطأ في التحديث:", error);
+          // إذا فشل، جرب بدون FID  
+          updateWithoutId(lat, lon, status);
+        });
+      }
+
+      // طريقة بديلة: تحديث بدون تحديد ID
+      function updateWithoutId(lat, lon, status) {
+        const updateUrl = `${featureLayerUrl}/updateFeatures`;
+        
+        const features = [{
+          attributes: {
+            status: status,
+            timestamp: new Date().toISOString()
+          },
+          geometry: {
+            x: lon,
+            y: lat,
+            spatialReference: { wkid: 4326 }
+          }
+        }];
+
+        const options = {
+          method: "post",
+          query: {
+            f: "json",
+            features: JSON.stringify(features),
+            where: `OBJECTID=${objectId}`, // استخدم where clause
+            rollbackOnFailure: false
+          }
+        };
+
+        console.log("محاولة ثانية مع where clause");
+
+        esriRequest(updateUrl, options).then(response => {
+          const data = response.data;
+          if (data.updateResults && data.updateResults[0].success) {
+            console.log("✅ تم التحديث بنجاح (طريقة ثانية)");
+            updateInfo(`✅ تم التحديث - ${new Date().toLocaleTimeString('ar-SA')}`);
+          } else {
+            console.error("فشل في الطريقة الثانية:", data);
+            updateInfo("❌ فشل في التحديث - تحقق من رقم OBJECTID");
+          }
+        }).catch(error => {
+          console.error("❌ خطأ في الطريقة الثانية:", error);
           updateInfo("❌ فشل في التحديث - سيتم المحاولة مرة أخرى");
         });
       }
