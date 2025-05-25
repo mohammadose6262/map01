@@ -4,6 +4,7 @@
   <meta charset="UTF-8" />
   <title>تتبع الموقع</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <script src="https://js.arcgis.com/4.28/"></script>
   <style>
     body { 
       font-family: Arial, sans-serif; 
@@ -113,199 +114,198 @@
   </div>
 
   <script>
-    // إعدادات ArcGIS  
-    const FEATURE_URL = "https://services6.arcgis.com/n6MCRBPSvlKSoB6e/arcgis/rest/services/%D9%81%D8%B1%D8%B6%D9%8A%D8%A9_%D8%AA%D8%AA%D8%A8%D8%B9/FeatureServer/0";
-    const FID = 1; // رقم الـ FID اللي تبي تعدله
-    
-    let trackingActive = false;
-    let trackingInterval = null;
+    require(["esri/request"], function(esriRequest) {
+      
+      // إعدادات ArcGIS
+      const featureLayerUrl = "https://services6.arcgis.com/n6MCRBPSvlKSoB6e/arcgis/rest/services/%D9%81%D8%B1%D8%B6%D9%8A%D8%A9_%D8%AA%D8%AA%D8%A8%D8%B9/FeatureServer/0";
+      const objectId = 1; // رقم OBJECTID اللي تبي تحدثه
+      
+      let trackingActive = false;
+      let trackingInterval = null;
 
-    // تحديث الموقع لـ FID محدد
-    function updateLocationInArcGIS(lat, lon, status = "نشط") {
-      const features = [{
-        attributes: {
-          FID: FID,
-          x: lon,
-          y: lat,
-          status: status,
-          timestamp: new Date().toISOString()
-        }
-      }];
-
-      const formData = new URLSearchParams();
-      formData.append('f', 'json');
-      formData.append('features', JSON.stringify(features));
-      formData.append('rollbackOnFailure', 'false');
-
-      fetch(`${FEATURE_URL}/updateFeatures`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/x-www-form-urlencoded"
-        },
-        body: formData
-      })
-      .then(response => response.json())
-      .then(data => {
-        if (data.updateResults && data.updateResults[0].success) {
-          console.log("✅ تم تحديث الموقع بنجاح");
-          updateInfo(`✅ تم التحديث - ${new Date().toLocaleTimeString('ar-SA')}`);
-        } else {
-          console.error("Response:", data);
-          throw new Error("فشل في التحديث");
-        }
-      })
-      .catch(error => {
-        console.error("❌ خطأ في التحديث:", error);
-        updateInfo("❌ فشل في التحديث - سيتم المحاولة مرة أخرى");
-      });
-    }
-
-    // الحصول على الموقع الحالي
-    function getCurrentLocation() {
-      return new Promise((resolve, reject) => {
-        if (!navigator.geolocation) {
-          reject(new Error("المتصفح لا يدعم تحديد الموقع"));
-          return;
-        }
-
-        navigator.geolocation.getCurrentPosition(
-          position => {
-            const lat = position.coords.latitude;
-            const lon = position.coords.longitude;
-            const accuracy = position.coords.accuracy;
-            
-            // تحديث الإحداثيات في الواجهة
-            document.getElementById('coords').innerHTML = 
-              `خط العرض: ${lat.toFixed(6)}<br>خط الطول: ${lon.toFixed(6)}<br>دقة: ${Math.round(accuracy)} متر`;
-            
-            resolve({ latitude: lat, longitude: lon, accuracy: accuracy });
-          },
-          error => {
-            let errorMsg = "خطأ غير معروف";
-            switch(error.code) {
-              case error.PERMISSION_DENIED:
-                errorMsg = "تم رفض الإذن للوصول للموقع";
-                break;
-              case error.POSITION_UNAVAILABLE:
-                errorMsg = "الموقع غير متاح";
-                break;
-              case error.TIMEOUT:
-                errorMsg = "انتهت مهلة تحديد الموقع";
-                break;
-            }
-            reject(new Error(errorMsg));
-          },
-          {
-            enableHighAccuracy: true,
-            timeout: 15000,
-            maximumAge: 0
+      // تحديث الموقع في ArcGIS باستخدام esriRequest
+      function updateLocationInArcGIS(lat, lon, status = "نشط") {
+        const updateUrl = `${featureLayerUrl}/updateFeatures`;
+        
+        const features = [{
+          attributes: {
+            OBJECTID: objectId,
+            Longitude: lon,
+            Latitude: lat
           }
-        );
-      });
-    }
+        }];
 
-    // تتبع الموقع وتحديثه
-    async function trackAndUpdate() {
-      try {
-        const location = await getCurrentLocation();
-        updateLocationInArcGIS(location.latitude, location.longitude, "نشط");
-      } catch (error) {
-        console.error("خطأ في تتبع الموقع:", error);
-        updateInfo(`❌ ${error.message}`);
+        const options = {
+          method: "post",
+          query: {
+            f: "json",
+            features: JSON.stringify(features),
+            rollbackOnFailure: false
+          }
+        };
+
+        esriRequest(updateUrl, options).then(response => {
+          const data = response.data;
+          if (data.updateResults && data.updateResults[0].success) {
+            console.log("✅ تم تحديث الموقع بنجاح");
+            updateInfo(`✅ تم التحديث - ${new Date().toLocaleTimeString('ar-SA')}`);
+          } else {
+            console.error("Response:", data);
+            throw new Error("فشل في التحديث");
+          }
+        }).catch(error => {
+          console.error("❌ خطأ في التحديث:", error);
+          updateInfo("❌ فشل في التحديث - سيتم المحاولة مرة أخرى");
+        });
       }
-    }
 
-    // بدء التتبع
-    async function startTracking() {
-      if (trackingActive) return;
+      // الحصول على الموقع الحالي
+      function getCurrentLocation() {
+        return new Promise((resolve, reject) => {
+          if (!navigator.geolocation) {
+            reject(new Error("المتصفح لا يدعم تحديد الموقع"));
+            return;
+          }
 
-      trackingActive = true;
-      updateStatus("🟢 التتبع نشط", "active");
-      
-      document.getElementById('startBtn').disabled = true;
-      document.getElementById('stopBtn').disabled = false;
+          navigator.geolocation.getCurrentPosition(
+            position => {
+              const lat = position.coords.latitude;
+              const lon = position.coords.longitude;
+              const accuracy = position.coords.accuracy;
+              
+              // تحديث الإحداثيات في الواجهة
+              document.getElementById('coords').innerHTML = 
+                `خط العرض: ${lat.toFixed(6)}<br>خط الطول: ${lon.toFixed(6)}<br>دقة: ${Math.round(accuracy)} متر`;
+              
+              resolve({ latitude: lat, longitude: lon, accuracy: accuracy });
+            },
+            error => {
+              let errorMsg = "خطأ غير معروف";
+              switch(error.code) {
+                case error.PERMISSION_DENIED:
+                  errorMsg = "تم رفض الإذن للوصول للموقع";
+                  break;
+                case error.POSITION_UNAVAILABLE:
+                  errorMsg = "الموقع غير متاح";
+                  break;
+                case error.TIMEOUT:
+                  errorMsg = "انتهت مهلة تحديد الموقع";
+                  break;
+              }
+              reject(new Error(errorMsg));
+            },
+            {
+              enableHighAccuracy: true,
+              timeout: 15000,
+              maximumAge: 0
+            }
+          );
+        });
+      }
 
-      updateInfo("🔄 جارٍ تحديد الموقع...");
+      // تتبع الموقع وتحديثه
+      async function trackAndUpdate() {
+        try {
+          const location = await getCurrentLocation();
+          updateLocationInArcGIS(location.latitude, location.longitude, "نشط");
+        } catch (error) {
+          console.error("خطأ في تتبع الموقع:", error);
+          updateInfo(`❌ ${error.message}`);
+        }
+      }
 
-      try {
-        // تحديث فوري
-        await trackAndUpdate();
+      // بدء التتبع
+      window.startTracking = async function() {
+        if (trackingActive) return;
+
+        trackingActive = true;
+        updateStatus("🟢 التتبع نشط", "active");
         
-        // بدء التحديث كل 30 ثانية
-        trackingInterval = setInterval(trackAndUpdate, 30000);
-        
-        updateInfo("✅ التتبع نشط - يتم التحديث كل 30 ثانية");
+        document.getElementById('startBtn').disabled = true;
+        document.getElementById('stopBtn').disabled = false;
 
-        // تفعيل الخلفية (إزالة ServiceWorker اللي يسبب مشاكل)
-        // منع إغلاق الشاشة
-        if ('wakeLock' in navigator) {
-          navigator.wakeLock.request('screen').catch(e => console.log('Wake lock failed:', e));
+        updateInfo("🔄 جارٍ تحديد الموقع...");
+
+        try {
+          // تحديث فوري
+          await trackAndUpdate();
+          
+          // بدء التحديث كل 30 ثانية
+          trackingInterval = setInterval(trackAndUpdate, 30000);
+          
+          updateInfo("✅ التتبع نشط - يتم التحديث كل 30 ثانية");
+
+          // منع إغلاق الشاشة
+          if ('wakeLock' in navigator) {
+            navigator.wakeLock.request('screen').catch(e => console.log('Wake lock failed:', e));
+          }
+
+        } catch (error) {
+          console.error("خطأ في بدء التتبع:", error);
+          stopTracking();
+        }
+      };
+
+      // إيقاف التتبع
+      window.stopTracking = async function() {
+        trackingActive = false;
+        
+        if (trackingInterval) {
+          clearInterval(trackingInterval);
+          trackingInterval = null;
         }
 
-      } catch (error) {
-        console.error("خطأ في بدء التتبع:", error);
-        stopTracking();
-      }
-    }
+        // تحديث أخير بحالة الوصول
+        try {
+          const location = await getCurrentLocation();
+          updateLocationInArcGIS(location.latitude, location.longitude, "وصل");
+        } catch (error) {
+          console.error("خطأ في إرسال إشارة الوصول:", error);
+        }
 
-    // إيقاف التتبع
-    async function stopTracking() {
-      trackingActive = false;
-      
-      if (trackingInterval) {
-        clearInterval(trackingInterval);
-        trackingInterval = null;
-      }
+        updateStatus("🔴 تم التوقف", "inactive");
+        updateInfo("✅ تم إيقاف التتبع وإرسال إشارة الوصول");
+        
+        document.getElementById('startBtn').disabled = false;
+        document.getElementById('stopBtn').disabled = true;
+      };
 
-      // تحديث أخير بحالة الوصول
-      try {
-        const location = await getCurrentLocation();
-        updateLocationInArcGIS(location.latitude, location.longitude, "وصل");
-      } catch (error) {
-        console.error("خطأ في إرسال إشارة الوصول:", error);
+      function updateStatus(text, type) {
+        const statusEl = document.getElementById('status');
+        statusEl.textContent = text;
+        statusEl.className = `status ${type}`;
       }
 
-      updateStatus("🔴 تم التوقف", "inactive");
-      updateInfo("✅ تم إيقاف التتبع وإرسال إشارة الوصول");
-      
-      document.getElementById('startBtn').disabled = false;
-      document.getElementById('stopBtn').disabled = true;
-    }
-
-    function updateStatus(text, type) {
-      const statusEl = document.getElementById('status');
-      statusEl.textContent = text;
-      statusEl.className = `status ${type}`;
-    }
-
-    function updateInfo(text) {
-      document.getElementById('info').textContent = text;
-    }
-
-    // منع إغلاق الصفحة أثناء التتبع
-    window.addEventListener('beforeunload', function(e) {
-      if (trackingActive) {
-        e.preventDefault();
-        e.returnValue = 'التتبع نشط، هل تريد المغادرة؟';
-        return 'التتبع نشط، هل تريد المغادرة؟';
+      function updateInfo(text) {
+        document.getElementById('info').textContent = text;
       }
-    });
 
-    // فحص دعم الموقع عند تحميل الصفحة
-    window.onload = function() {
-      if ("geolocation" in navigator) {
-        updateInfo("✅ جاهز! اضغط بدء التتبع");
-      } else {
-        updateInfo("❌ المتصفح لا يدعم تحديد الموقع");
-        document.getElementById('startBtn').disabled = true;
-      }
-    };
+      // منع إغلاق الصفحة أثناء التتبع
+      window.addEventListener('beforeunload', function(e) {
+        if (trackingActive) {
+          e.preventDefault();
+          e.returnValue = 'التتبع نشط، هل تريد المغادرة؟';
+          return 'التتبع نشط، هل تريد المغادرة؟';
+        }
+      });
 
-    // استمرار العمل عند تصغير التطبيق
-    document.addEventListener('visibilitychange', function() {
-      if (document.hidden && trackingActive) {
-        console.log('التطبيق في الخلفية - التتبع مستمر');
-      }
+      // فحص دعم الموقع عند تحميل الصفحة
+      window.onload = function() {
+        if ("geolocation" in navigator) {
+          updateInfo("✅ جاهز! اضغط بدء التتبع");
+        } else {
+          updateInfo("❌ المتصفح لا يدعم تحديد الموقع");
+          document.getElementById('startBtn').disabled = true;
+        }
+      };
+
+      // استمرار العمل عند تصغير التطبيق
+      document.addEventListener('visibilitychange', function() {
+        if (document.hidden && trackingActive) {
+          console.log('التطبيق في الخلفية - التتبع مستمر');
+        }
+      });
+
     });
   </script>
 </body>
